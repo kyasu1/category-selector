@@ -1,5 +1,19 @@
-$icon-font-path: '~bootstrap-sass/assets/fonts/bootstrap/';
-@import '~bootstrap-sass/assets/stylesheets/bootstrap/_mixins.scss';
-@import '~bootstrap-sass/assets/stylesheets/_bootstrap.scss';
+// $icon-font-path: '~bootstrap-sass/assets/fonts/bootstrap/';
+// @import '~bootstrap-sass/assets/stylesheets/bootstrap/_mixins.scss';
+// @import '~bootstrap-sass/assets/stylesheets/_bootstrap.scss';
 
 // can add Boostrap overrides, additional Sass/CSS below...
+
+@import "~bulma/bulma.sass";
+
+.scroll {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow: auto;
+
+  .flex {
+    display: flex;
+    flex-wrap: nowrap;
+    flex-direction: column;
+  }
+}
