@@ -7,7 +7,7 @@ import Json.Decode.Pipeline exposing (decode, required, optional)
 
 
 token =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODA0MzI5MjAsImlkIjoia3lhc3V5YWtvQGdtYWlsLmNvbSIsIm9yaWdfaWF0IjoxNDgwNDI5MzIwfQ.SfhHx1IDwBaBzJPvZ9mxOwew_kGaWB7QzTCz2IHtUs4"
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODA1MjA5MTQsImlkIjoia3lhc3V5YWtvQGdtYWlsLmNvbSIsIm9yaWdfaWF0IjoxNDgwNTE3MzE0fQ.Ip8gXHzZvpD7AVeHhvFM7sDQunVLlIdOVWvux6qL_o8"
 
 
 type Msg
@@ -50,14 +50,15 @@ type alias Model =
     }
 
 
-jwtGet : CategoryId -> Http.Request Category
-jwtGet id =
+ajax : CategoryId -> Http.Request Category
+ajax id =
     Http.request
         { method = "GET"
         , headers =
             [ Http.header "authorization" ("Bearer " ++ token)
             ]
-        , url = "http://ocean.officeiko.co.jp:8081/api/categories/" ++ toString id
+            --, url = "http://ocean.officeiko.co.jp:8081/api/categories/" ++ toString id
+        , url = "http://localhost:4000/api/categoryTree/" ++ toString id
         , body = Http.emptyBody
         , expect = Http.expectJson decodeJson
         , timeout = Nothing
@@ -70,14 +71,15 @@ initialModel =
     ( { categoryId = 0
       , categoryList = []
       }
-    , getCategory 0
+      --    , getCategory 0
+    , linkTo 0
     )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    --case Debug.log "msg" msg of
-    case msg of
+    case Debug.log "msg" msg of
+        --    case msg of
         UpdateCategory (Ok category) ->
             let
                 list =
@@ -109,23 +111,18 @@ update msg model =
                         Child categoryList ->
                             List.filter (\e -> e.categoryId == id_) categoryList |> List.head
             in
-                case selected of
+                case Debug.log "Selected" selected of
                     Just category ->
-                        if category.isLeafToLink == True then
+                        if category.isLink == True then
                             ( model, linkTo id_ )
                         else
-                            case String.toInt id of
-                                Ok id_ ->
-                                    { model
-                                        | categoryList = List.map (setCategoryId category.depth id) model.categoryList
-                                    }
-                                        ! [ getCategory id_ ]
-
-                                Err _ ->
-                                    ( model, Cmd.none )
+                            { model
+                                | categoryList = List.map (setCategoryId (category.depth - 1) id_) model.categoryList
+                            }
+                                ! [ getCategory id_ ]
 
                     Nothing ->
-                        model ! []
+                        { model | categoryList = List.drop (List.length model.categoryList - category.depth - 1) model.categoryList } ! []
 
 
 setSelected : List Category -> Maybe CategoryId -> List ( Category, Maybe CategoryId )
@@ -138,23 +135,23 @@ setSelected categories categoryId =
             ( head, categoryId ) :: (setSelected tail <| Just head.categoryId)
 
 
-setCategoryId : Int -> String -> ( Category, Maybe CategoryId ) -> ( Category, Maybe CategoryId )
+setCategoryId : Int -> CategoryId -> ( Category, Maybe CategoryId ) -> ( Category, Maybe CategoryId )
 setCategoryId depth id ( category, categoryId ) =
     if depth == category.depth then
-        ( category, Result.toMaybe <| String.toInt id )
+        ( category, Just id )
     else
         ( category, categoryId )
 
 
 linkTo : CategoryId -> Cmd Msg
 linkTo id =
-    Http.toTask (jwtGet id)
+    Http.toTask (ajax id)
         |> Task.andThen
             (\category ->
                 category.categoryIdPath
                     |> String.split ","
                     |> List.map (\id -> String.toInt id |> Result.toMaybe |> Maybe.withDefault 0)
-                    |> List.map (\id -> Http.toTask <| jwtGet id)
+                    |> List.map (\id -> Http.toTask <| ajax id)
                     |> Task.sequence
             )
         |> Task.attempt UpdateCategories
@@ -162,7 +159,7 @@ linkTo id =
 
 getCategory : CategoryId -> Cmd Msg
 getCategory id =
-    Http.send UpdateCategory (jwtGet id)
+    Http.send UpdateCategory (ajax id)
 
 
 decodeJson : Decode.Decoder Category
@@ -173,10 +170,10 @@ decodeJson =
 decodeCategory : Decode.Decoder Category
 decodeCategory =
     decode Category
-        |> required "CategoryID" Decode.int
+        |> required "CategoryId" Decode.int
         |> required "CategoryName" Decode.string
         |> required "CategoryPath" Decode.string
-        |> required "CategoryIDPath" Decode.string
+        |> required "CategoryIdPath" Decode.string
         |> required "IsLeaf" Decode.bool
         |> required "Depth" Decode.int
         |> required "Order" Decode.int
