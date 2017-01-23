@@ -10,6 +10,10 @@ token =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE0ODA1MjA5MTQsImlkIjoia3lhc3V5YWtvQGdtYWlsLmNvbSIsIm9yaWdfaWF0IjoxNDgwNTE3MzE0fQ.Ip8gXHzZvpD7AVeHhvFM7sDQunVLlIdOVWvux6qL_o8"
 
 
+host =
+    "http://pro-3.local:4000"
+
+
 type Msg
     = UpdateCategory (Result Http.Error Category)
     | UpdateCategories (Result Http.Error (List Category))
@@ -57,8 +61,7 @@ ajax id =
         , headers =
             [ Http.header "authorization" ("Bearer " ++ token)
             ]
-            --, url = "http://ocean.officeiko.co.jp:8081/api/categories/" ++ toString id
-        , url = "http://localhost:4000/api/categoryTree/" ++ toString id
+        , url = host ++ "/api/categoryTree/" ++ toString id
         , body = Http.emptyBody
         , expect = Http.expectJson decodeJson
         , timeout = Nothing
